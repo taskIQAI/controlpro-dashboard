@@ -116,7 +116,14 @@ function loadState() {
     }
   }
 
-  return createTemplateState("servicios");
+  return createEmptyState();
+}
+
+function createEmptyState() {
+  return {
+    records: [],
+    tasks: []
+  };
 }
 
 function normalizeState(input) {
@@ -196,7 +203,7 @@ async function loadWorkspaceRemote() {
 
   if (data) {
     workspaceId = data.id;
-    state = normalizeState(data.app_state || createTemplateState("servicios"));
+    state = normalizeState(data.app_state || createEmptyState());
     shareConfig = { ...defaultShareConfig(), ...(data.share_config || {}) };
     localStorage.setItem(scopedKey(STORAGE_KEY), JSON.stringify(state));
     localStorage.setItem(scopedKey(SHARE_KEY), JSON.stringify(shareConfig));
@@ -567,7 +574,7 @@ async function loginWithGoogleDemo() {
   showToast("Sesion demo con Google iniciada.");
 }
 
-function startSession(user, preferredIndustry) {
+function startSession(user) {
   saveSession({
     userId: user.id,
     email: user.email,
@@ -581,10 +588,6 @@ function startSession(user, preferredIndustry) {
   });
 
   state = loadState();
-  if (!localStorage.getItem(scopedKey(STORAGE_KEY)) && preferredIndustry) {
-    state = createTemplateState(templateFromIndustry(preferredIndustry));
-    saveState();
-  }
   shareConfig = loadShareConfig();
   applyShareConfig();
   updateSessionView();

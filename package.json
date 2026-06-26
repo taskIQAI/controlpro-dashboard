@@ -1,0 +1,16 @@
+{
+  "name": "controlpro-dashboard",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Dashboard SaaS para gestion, ventas y control de procesos.",
+  "scripts": {
+    "dev": "vite --host 127.0.0.1 --port 5173",
+    "build": "vite build",
+    "preview": "vite preview --host 127.0.0.1 --port 4173",
+    "start": "node server.js"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "vite": "^7.0.0"
+  }
+}

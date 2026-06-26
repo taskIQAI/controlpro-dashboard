@@ -1,0 +1,514 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>ControlPro | Dashboard operativo</title>
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <section class="auth-screen" id="authScreen">
+      <div class="auth-hero">
+        <div class="brand auth-brand">
+          <span class="brand-mark">CP</span>
+          <div>
+            <strong>ControlPro</strong>
+            <small>Dashboard SaaS para empresas</small>
+          </div>
+        </div>
+        <h1>Entr&aacute; a tu panel de gesti&oacute;n</h1>
+        <p>Prob&aacute; la app con cuenta, empresa, reportes y datos separados por organizaci&oacute;n.</p>
+        <div class="auth-points">
+          <span>Indicadores operativos</span>
+          <span>Procesos y tareas</span>
+          <span>Exportaci&oacute;n y reportes</span>
+        </div>
+      </div>
+
+      <div class="auth-card">
+        <div class="auth-tabs">
+          <button class="auth-tab active" type="button" data-auth-tab="login">Ingresar</button>
+          <button class="auth-tab" type="button" data-auth-tab="register">Crear cuenta</button>
+        </div>
+
+        <form class="auth-form active" id="loginForm">
+          <label>
+            <span>Email</span>
+            <input id="loginEmail" type="email" autocomplete="email" required>
+          </label>
+          <label>
+            <span>Contrase&ntilde;a</span>
+            <input id="loginPassword" type="password" autocomplete="current-password" required>
+          </label>
+          <button class="primary-button" type="submit">Ingresar</button>
+          <button class="secondary-button" type="button" id="googleDemo">Continuar con Google</button>
+          <p class="auth-note">Modo demo local. La autenticaci&oacute;n real requiere backend u OAuth.</p>
+        </form>
+
+        <form class="auth-form" id="registerForm">
+          <label>
+            <span>Nombre</span>
+            <input id="registerName" type="text" autocomplete="name" required>
+          </label>
+          <label>
+            <span>Email</span>
+            <input id="registerEmail" type="email" autocomplete="email" required>
+          </label>
+          <label>
+            <span>Contrase&ntilde;a</span>
+            <input id="registerPassword" type="password" autocomplete="new-password" minlength="6" required>
+          </label>
+          <label>
+            <span>Empresa</span>
+            <input id="registerCompany" type="text" placeholder="Ej. Empresa Norte" required>
+          </label>
+          <label>
+            <span>Rubro principal</span>
+            <select id="registerIndustry" required>
+              <option value="Servicios">Servicios</option>
+              <option value="Comercio">Comercio</option>
+              <option value="Salud">Salud</option>
+              <option value="Industria">Industria</option>
+              <option value="Logistica">Logistica</option>
+              <option value="Educacion">Educacion</option>
+            </select>
+          </label>
+          <button class="primary-button" type="submit">Crear cuenta</button>
+        </form>
+      </div>
+    </section>
+
+    <div class="app-shell is-hidden" id="appShell">
+      <aside class="sidebar" aria-label="Navegaci&oacute;n principal">
+        <div class="brand">
+          <span class="brand-mark">CP</span>
+          <div>
+            <strong>ControlPro</strong>
+            <small>Gesti&oacute;n y procesos</small>
+          </div>
+        </div>
+
+        <nav class="nav-list">
+          <button class="nav-item active" type="button" data-section="overview">
+            <span aria-hidden="true">01</span>
+            <span>Panel</span>
+          </button>
+          <button class="nav-item" type="button" data-section="data">
+            <span aria-hidden="true">02</span>
+            <span>Datos</span>
+          </button>
+          <button class="nav-item" type="button" data-section="process">
+            <span aria-hidden="true">03</span>
+            <span>Procesos</span>
+          </button>
+          <button class="nav-item" type="button" data-section="settings">
+            <span aria-hidden="true">04</span>
+            <span>Configurar</span>
+          </button>
+        </nav>
+
+        <div class="sidebar-note">
+          <span>Salud operativa</span>
+          <strong id="sidebarHealth">Calculando</strong>
+        </div>
+        <div class="sidebar-note account-note">
+          <span id="accountEmail">Sin usuario</span>
+          <strong id="accountCompany">Sin empresa</strong>
+        </div>
+      </aside>
+
+      <main class="main">
+        <header class="topbar">
+          <div>
+            <p class="eyebrow">Dashboard operativo</p>
+            <h1>Gesti&oacute;n, ventas y control de procesos</h1>
+          </div>
+          <div class="account-bar">
+            <div>
+              <span id="companyBadge">Empresa</span>
+              <strong id="userBadge">Usuario</strong>
+            </div>
+            <button class="secondary-button" type="button" id="logoutButton">Salir</button>
+          </div>
+          <div class="toolbar" aria-label="Filtros globales">
+            <label>
+              <span>Periodo</span>
+              <select id="periodFilter">
+                <option value="30">&Uacute;ltimos 30 d&iacute;as</option>
+                <option value="90">&Uacute;ltimos 90 d&iacute;as</option>
+                <option value="365">&Uacute;ltimos 12 meses</option>
+                <option value="all">Todo</option>
+              </select>
+            </label>
+            <label>
+              <span>&Aacute;rea</span>
+              <select id="areaFilter"></select>
+            </label>
+            <label>
+              <span>Rubro</span>
+              <select id="industryFilter"></select>
+            </label>
+          </div>
+        </header>
+
+        <section class="section active" data-view="overview">
+          <div class="kpi-grid" aria-label="Indicadores principales">
+            <article class="metric-card">
+              <span class="metric-label">Ingresos</span>
+              <strong id="revenueKpi">$0</strong>
+              <small id="revenueTrend">Sin comparaci&oacute;n</small>
+            </article>
+            <article class="metric-card">
+              <span class="metric-label">Margen estimado</span>
+              <strong id="marginKpi">0%</strong>
+              <small id="profitKpi">$0 de utilidad</small>
+            </article>
+            <article class="metric-card">
+              <span class="metric-label">Cumplimiento</span>
+              <strong id="processKpi">0%</strong>
+              <small id="processTrend">0 tareas abiertas</small>
+            </article>
+            <article class="metric-card">
+              <span class="metric-label">Clientes activos</span>
+              <strong id="clientsKpi">0</strong>
+              <small id="ticketKpi">$0 ticket promedio</small>
+            </article>
+          </div>
+
+          <section class="work-grid">
+            <article class="panel">
+              <div class="panel-heading">
+                <div>
+                  <h2>Ingresos por periodo</h2>
+                  <p>Comparaci&oacute;n entre ingresos reales y objetivo.</p>
+                </div>
+                <button class="icon-button" type="button" id="seedData" title="Cargar ejemplo">R</button>
+              </div>
+              <div class="legend">
+                <span><i class="dot actual"></i>Real</span>
+                <span><i class="dot target"></i>Objetivo</span>
+              </div>
+              <div class="bar-chart" id="revenueChart" aria-label="Grafico de ingresos"></div>
+            </article>
+
+            <article class="panel">
+              <div class="panel-heading">
+                <div>
+                  <h2>Embudo y estado</h2>
+                  <p>Oportunidades, pedidos o casos por etapa.</p>
+                </div>
+              </div>
+              <div class="funnel" id="funnelChart"></div>
+            </article>
+
+            <article class="panel">
+              <div class="panel-heading">
+                <div>
+                  <h2>Distribuci&oacute;n por &aacute;rea</h2>
+                  <p>Donde se concentra la actividad del negocio.</p>
+                </div>
+              </div>
+              <div class="horizontal-chart" id="areaChart"></div>
+            </article>
+
+            <article class="panel">
+              <div class="panel-heading">
+                <div>
+                  <h2>Alertas de gesti&oacute;n</h2>
+                  <p>Prioridades detectadas autom&aacute;ticamente.</p>
+                </div>
+              </div>
+              <div class="insight-list" id="insightList"></div>
+            </article>
+          </section>
+        </section>
+
+        <section class="section" data-view="data">
+          <div class="split-grid">
+            <article class="panel">
+              <div class="panel-heading">
+                <div>
+                  <h2>Registrar movimiento</h2>
+                  <p>Ventas, servicios, pedidos, gastos o casos facturables.</p>
+                </div>
+              </div>
+              <form class="form-grid" id="recordForm">
+                <label>
+                  <span>Fecha</span>
+                  <input id="recordDate" type="date" required>
+                </label>
+                <label>
+                  <span>Rubro</span>
+                  <select id="recordIndustry" required></select>
+                </label>
+                <label>
+                  <span>&Aacute;rea</span>
+                  <select id="recordArea" required></select>
+                </label>
+                <label>
+                  <span>Cliente / unidad</span>
+                  <input id="recordClient" type="text" placeholder="Ej. Cliente Norte" required>
+                </label>
+                <label>
+                  <span>Etapa</span>
+                  <select id="recordStage" required></select>
+                </label>
+                <label>
+                  <span>Responsable</span>
+                  <input id="recordOwner" type="text" placeholder="Ej. Sofia" required>
+                </label>
+                <label>
+                  <span>Ingreso</span>
+                  <input id="recordAmount" type="number" min="0" step="1" required>
+                </label>
+                <label>
+                  <span>Costo</span>
+                  <input id="recordCost" type="number" min="0" step="1" required>
+                </label>
+                <label>
+                  <span>Objetivo</span>
+                  <input id="recordTarget" type="number" min="0" step="1" required>
+                </label>
+                <label class="full-field">
+                  <span>Pr&oacute;ximo paso</span>
+                  <input id="recordNext" type="text" placeholder="Ej. Confirmar propuesta">
+                </label>
+                <div class="form-actions">
+                  <button class="primary-button" type="submit">Guardar movimiento</button>
+                  <button class="secondary-button" type="button" id="clearRecords">Vaciar datos</button>
+                </div>
+              </form>
+            </article>
+
+            <article class="panel">
+              <div class="panel-heading">
+                <div>
+                  <h2>Cargar informaci&oacute;n</h2>
+                  <p>Import&aacute; o export&aacute; datos para probar con distintos rubros.</p>
+                </div>
+              </div>
+              <div class="import-box">
+                <input id="csvFile" type="file" accept=".csv">
+                <button class="secondary-button" type="button" id="downloadCsv">Exportar CSV</button>
+                <button class="secondary-button" type="button" id="downloadJson">Exportar JSON</button>
+              </div>
+              <div class="sample-format">
+                <strong>Columnas CSV aceptadas</strong>
+                <code>date,industry,area,client,stage,owner,amount,cost,target,next</code>
+              </div>
+            </article>
+          </div>
+
+          <article class="panel table-panel">
+            <div class="panel-heading">
+              <div>
+                <h2>Base de movimientos</h2>
+                <p>Datos filtrables para analisis y seguimiento.</p>
+              </div>
+              <input id="searchInput" type="search" placeholder="Buscar cliente, etapa o responsable">
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Fecha</th>
+                    <th>Rubro</th>
+                    <th>&Aacute;rea</th>
+                    <th>Cliente</th>
+                    <th>Etapa</th>
+                    <th>Ingreso</th>
+                    <th>Margen</th>
+                    <th>Responsable</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody id="recordsTable"></tbody>
+              </table>
+            </div>
+          </article>
+        </section>
+
+        <section class="section" data-view="process">
+          <div class="split-grid">
+            <article class="panel">
+              <div class="panel-heading">
+                <div>
+                  <h2>Crear tarea de proceso</h2>
+                  <p>Acciones, controles internos, entregas o seguimientos.</p>
+                </div>
+              </div>
+              <form class="form-grid" id="taskForm">
+                <label class="full-field">
+                  <span>Tarea</span>
+                  <input id="taskTitle" type="text" placeholder="Ej. Revisar pedidos demorados" required>
+                </label>
+                <label>
+                  <span>&Aacute;rea</span>
+                  <select id="taskArea" required></select>
+                </label>
+                <label>
+                  <span>Responsable</span>
+                  <input id="taskOwner" type="text" placeholder="Ej. Diego" required>
+                </label>
+                <label>
+                  <span>Prioridad</span>
+                  <select id="taskPriority">
+                    <option value="high">Alta</option>
+                    <option value="medium">Media</option>
+                    <option value="low">Baja</option>
+                  </select>
+                </label>
+                <label>
+                  <span>Vencimiento</span>
+                  <input id="taskDue" type="date" required>
+                </label>
+                <div class="form-actions">
+                  <button class="primary-button" type="submit">Guardar tarea</button>
+                  <button class="secondary-button" type="button" id="clearTasks">Vaciar tareas</button>
+                </div>
+              </form>
+            </article>
+
+            <article class="panel">
+              <div class="panel-heading">
+                <div>
+                  <h2>Tablero de procesos</h2>
+                  <p>Control de pendientes, vencimientos y responsables.</p>
+                </div>
+              </div>
+              <div class="task-list" id="taskList"></div>
+            </article>
+          </div>
+        </section>
+
+        <section class="section" data-view="settings">
+          <div class="split-grid">
+            <article class="panel">
+              <div class="panel-heading">
+                <div>
+                  <h2>Exportar y compartir</h2>
+                  <p>Configur&aacute; destinatarios, mensaje y formato de salida.</p>
+                </div>
+              </div>
+              <form class="form-grid" id="shareForm">
+                <label>
+                  <span>Email destino</span>
+                  <input id="shareEmail" type="email" placeholder="gerencia@empresa.com">
+                </label>
+                <label>
+                  <span>WhatsApp</span>
+                  <input id="sharePhone" type="tel" placeholder="5491123456789">
+                </label>
+                <label>
+                  <span>Nombre del reporte</span>
+                  <input id="reportName" type="text" placeholder="Reporte gerencial">
+                </label>
+                <label class="full-field">
+                  <span>Mensaje</span>
+                  <input id="shareMessage" type="text" placeholder="Adjunto reporte actualizado para revision.">
+                </label>
+                <div class="form-actions">
+                  <button class="primary-button" type="button" id="downloadExcel">Exportar Excel</button>
+                  <button class="secondary-button" type="button" id="downloadReport">Documento HTML</button>
+                  <button class="secondary-button" type="button" id="sendEmail">Abrir mail</button>
+                  <button class="secondary-button" type="button" id="sendWhatsapp">Abrir WhatsApp</button>
+                </div>
+              </form>
+              <div class="sample-format">
+                <strong>Nota operativa</strong>
+                <span>El navegador puede descargar el documento y abrir el canal configurado. Para enviar adjuntos autom&aacute;ticos hace falta conectar Gmail, Outlook, WhatsApp Business API o un backend propio.</span>
+              </div>
+            </article>
+
+            <article class="panel">
+              <div class="panel-heading">
+                <div>
+                  <h2>Datos de empresa</h2>
+                  <p>Informaci&oacute;n base de la organizaci&oacute;n activa.</p>
+                </div>
+              </div>
+              <form class="form-grid" id="companyForm">
+                <label>
+                  <span>Empresa</span>
+                  <input id="companyNameInput" type="text" required>
+                </label>
+                <label>
+                  <span>Rubro</span>
+                  <select id="companyIndustryInput" required>
+                    <option value="Servicios">Servicios</option>
+                    <option value="Comercio">Comercio</option>
+                    <option value="Salud">Salud</option>
+                    <option value="Industria">Industria</option>
+                    <option value="Logistica">Logistica</option>
+                    <option value="Educacion">Educacion</option>
+                  </select>
+                </label>
+                <label>
+                  <span>CUIT / ID fiscal</span>
+                  <input id="companyTaxInput" type="text" placeholder="Opcional">
+                </label>
+                <label>
+                  <span>Plan</span>
+                  <select id="companyPlanInput">
+                    <option value="starter">Starter</option>
+                    <option value="pro">Pro</option>
+                    <option value="empresa">Empresa</option>
+                  </select>
+                </label>
+                <div class="form-actions">
+                  <button class="primary-button" type="submit">Guardar empresa</button>
+                </div>
+              </form>
+            </article>
+
+            <article class="panel">
+              <div class="panel-heading">
+                <div>
+                  <h2>Plantillas por rubro</h2>
+                  <p>Carga datos de prueba pensados para distintos tipos de empresa.</p>
+                </div>
+              </div>
+              <div class="template-grid">
+                <button type="button" class="template-card" data-template="servicios">
+                  <strong>Servicios</strong>
+                  <span>Proyectos, propuestas, entregas y soporte.</span>
+                </button>
+                <button type="button" class="template-card" data-template="comercio">
+                  <strong>Comercio</strong>
+                  <span>Pedidos, ventas, stock y atencion al cliente.</span>
+                </button>
+                <button type="button" class="template-card" data-template="salud">
+                  <strong>Salud</strong>
+                  <span>Turnos, prestaciones, autorizaciones y cobros.</span>
+                </button>
+                <button type="button" class="template-card" data-template="industria">
+                  <strong>Industria</strong>
+                  <span>Produccion, calidad, despacho y mantenimiento.</span>
+                </button>
+              </div>
+            </article>
+
+            <article class="panel">
+              <div class="panel-heading">
+                <div>
+                  <h2>Qu&eacute; necesitamos</h2>
+                  <p>Base m&iacute;nima para convertirlo en una herramienta de gesti&oacute;n real.</p>
+                </div>
+              </div>
+              <ul class="needs-list">
+                <li>Definir 4 a 8 indicadores principales por tipo de empresa.</li>
+                <li>Conectar datos desde Excel, CSV, sistema de ventas o carga manual.</li>
+                <li>Normalizar estados: prospecto, propuesta, aprobado, entregado, cobrado.</li>
+                <li>Registrar responsables, fechas de vencimiento y acciones pendientes.</li>
+                <li>Crear vistas por gerencia: ventas, operaciones, finanzas y direcci&oacute;n.</li>
+              </ul>
+            </article>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+    <script type="module" src="app.js"></script>
+  </body>
+</html>

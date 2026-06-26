@@ -12,10 +12,11 @@ iniciar-dashboard.bat
 
 Eso inicia el servidor y abre el dashboard automaticamente.
 
-O manualmente:
+O manualmente para desarrollo:
 
 ```bash
-node server.js
+npm install
+npm run dev
 ```
 
 Luego abrir:
@@ -47,8 +48,9 @@ El proyecto quedo preparado para GitHub + Vercel + Supabase:
 - Documento HTML imprimible para enviar como reporte.
 - Apertura de borrador de email y WhatsApp con resumen configurable.
 - Exportacion JSON como respaldo.
-- Registro e ingreso local por email y contrasena.
-- Acceso Google en modo demo local.
+- Registro e ingreso con Supabase Auth cuando esta configurado.
+- Acceso Google con Supabase OAuth cuando esta configurado.
+- Modo local/demo si faltan variables de Supabase.
 - Datos de empresa configurables: nombre, rubro, ID fiscal y plan.
 - Plantillas de prueba por rubro: servicios, comercio, salud e industria.
 - Tareas operativas con prioridad, responsable, vencimiento y estado.
@@ -62,13 +64,11 @@ Los adjuntos deben agregarse manualmente desde la descarga. Para adjuntar y envi
 
 ## Cuentas y monetizacion
 
-La version actual incluye autenticacion local para probar el flujo de producto: registro, login, sesion, empresa activa y datos separados por cuenta/empresa.
+La version actual incluye autenticacion real con Supabase cuando Vercel tiene las variables configuradas. Si faltan variables, conserva modo local/demo para pruebas.
 
-Para publicar como app monetizable en la nube hace falta reemplazar este modo local por autenticacion real:
+Para completar la app monetizable en la nube falta:
 
-- Google OAuth para ingresar con cuenta Google.
-- Email y contrasena con recuperacion de clave.
-- Base de datos multiempresa.
+- Recuperacion de clave.
 - Roles y permisos por usuario.
 - Suscripciones o planes de pago.
 - Backend para enviar emails, adjuntos y mensajes de WhatsApp Business.

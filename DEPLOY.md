@@ -28,14 +28,45 @@
    - `VITE_SUPABASE_ANON_KEY`
 6. Deploy.
 
-## 4. Estado actual
+## 4. Configurar URLs de autenticacion
 
-La app ya esta lista para deploy como front-end. El login actual funciona en modo local/demo. Para activar autenticacion real con Supabase hay que conectar `app.js` con `@supabase/supabase-js` usando las variables de entorno de Vercel.
+En Supabase, ir a Authentication > URL Configuration.
 
-## 5. Siguiente paso tecnico
+Agregar en Site URL la URL principal de Vercel, por ejemplo:
 
-- Reemplazar login local por Supabase Auth.
-- Guardar `state` y `shareConfig` en `app_workspaces`.
-- Crear perfiles y empresas en las tablas `user_profiles` y `companies`.
+```text
+https://controlpro-dashboard.vercel.app
+```
+
+Agregar tambien en Redirect URLs:
+
+```text
+https://controlpro-dashboard.vercel.app/*
+http://localhost:5173/*
+```
+
+## 5. Estado actual
+
+La app ya usa Supabase cuando existen estas variables:
+
+```text
+VITE_SUPABASE_URL
+VITE_SUPABASE_ANON_KEY
+```
+
+Con Supabase activo:
+
+- Registro por email y contrasena.
+- Login por email y contrasena.
+- Login con Google OAuth.
+- Creacion de empresa y perfil.
+- Guardado de movimientos, tareas y configuracion en `app_workspaces`.
+
+Si las variables no existen, la app sigue funcionando en modo local/demo.
+
+## 6. Siguiente paso tecnico
+
 - Agregar recuperacion de contrasena.
+- Mejorar roles por usuario: owner, admin, operador, lectura.
 - Agregar planes/pagos con Stripe o Mercado Pago.
+- Crear invitaciones a empresas para equipos.

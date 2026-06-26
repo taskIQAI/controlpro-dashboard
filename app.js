@@ -1,7 +1,15 @@
+import { createClient } from "@supabase/supabase-js";
+
 const STORAGE_KEY = "controlpro-state-v2";
 const SHARE_KEY = "controlpro-share-config-v1";
 const USERS_KEY = "controlpro-users-v1";
 const SESSION_KEY = "controlpro-session-v1";
+
+const viteEnv = import.meta.env || {};
+const supabaseUrl = viteEnv.VITE_SUPABASE_URL;
+const supabaseAnonKey = viteEnv.VITE_SUPABASE_ANON_KEY;
+const isSupabaseEnabled = Boolean(supabaseUrl && supabaseAnonKey);
+const supabase = isSupabaseEnabled ? createClient(supabaseUrl, supabaseAnonKey) : null;
 
 const config = {
   industries: ["Servicios", "Comercio", "Salud", "Industria", "Logistica", "Educacion"],
@@ -39,6 +47,7 @@ const templates = {
 let session = loadSession();
 let state = loadState();
 let shareConfig = loadShareConfig();
+let workspaceId = null;
 
 const money = new Intl.NumberFormat("es-AR", {
   style: "currency",
@@ -135,6 +144,7 @@ function normalizeState(input) {
 
 function saveState() {
   localStorage.setItem(scopedKey(STORAGE_KEY), JSON.stringify(state));
+  saveWorkspaceRemote();
 }
 
 function loadShareConfig() {
@@ -166,6 +176,57 @@ function saveShareConfig() {
     message: el.shareMessage.value.trim() || "Comparto el reporte actualizado para revision."
   };
   localStorage.setItem(scopedKey(SHARE_KEY), JSON.stringify(shareConfig));
+  saveWorkspaceRemote();
+}
+
+async function loadWorkspaceRemote() {
+  if (!isSupabaseEnabled || !session?.userId || !session?.companyId) return;
+
+  const { data, error } = await supabase
+    .from("app_workspaces")
+    .select("id, app_state, share_config")
+    .eq("user_id", session.userId)
+    .eq("company_id", session.companyId)
+    .maybeSingle();
+
+  if (error) {
+    showToast("No se pudo cargar el workspace en la nube.");
+    return;
+  }
+
+  if (data) {
+    workspaceId = data.id;
+    state = normalizeState(data.app_state || createTemplateState("servicios"));
+    shareConfig = { ...defaultShareConfig(), ...(data.share_config || {}) };
+    localStorage.setItem(scopedKey(STORAGE_KEY), JSON.stringify(state));
+    localStorage.setItem(scopedKey(SHARE_KEY), JSON.stringify(shareConfig));
+    applyShareConfig();
+    return;
+  }
+
+  await saveWorkspaceRemote();
+}
+
+async function saveWorkspaceRemote() {
+  if (!isSupabaseEnabled || !session?.userId || !session?.companyId) return;
+
+  const payload = {
+    user_id: session.userId,
+    company_id: session.companyId,
+    app_state: state,
+    share_config: shareConfig,
+    updated_at: new Date().toISOString()
+  };
+
+  const { data, error } = await supabase
+    .from("app_workspaces")
+    .upsert(payload, { onConflict: "user_id,company_id" })
+    .select("id")
+    .single();
+
+  if (!error && data) {
+    workspaceId = data.id;
+  }
 }
 
 function scopedKey(baseKey) {
@@ -258,7 +319,7 @@ function parseNumber(value) {
   return Number(cleaned) || 0;
 }
 
-function init() {
+async function init() {
   fillSelect(el.areaFilter, ["Todas", ...config.areas], ["all", ...config.areas]);
   fillSelect(el.industryFilter, ["Todos", ...config.industries], ["all", ...config.industries]);
   fillSelect(document.querySelector("#recordIndustry"), config.industries, config.industries);
@@ -275,6 +336,7 @@ function init() {
   applyCompanyConfig();
 
   bindEvents();
+  await hydrateSupabaseSession();
   updateSessionView();
 }
 
@@ -353,10 +415,29 @@ function setAuthTab(tab) {
   });
 }
 
-function loginWithEmail(event) {
+async function loginWithEmail(event) {
   event.preventDefault();
   const email = normalizeEmail(el.loginEmail.value);
   const password = el.loginPassword.value;
+
+  if (isSupabaseEnabled) {
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error || !data.user) {
+      showToast(error?.message || "No se pudo iniciar sesion.");
+      return;
+    }
+
+    try {
+      await startSupabaseSession(data.user);
+    } catch (profileError) {
+      showToast(profileError.message || "No se pudo cargar la empresa.");
+      return;
+    }
+    el.loginForm.reset();
+    showToast("Sesion iniciada.");
+    return;
+  }
+
   const user = loadUsers().find((item) => item.email === email && item.password === password);
 
   if (!user) {
@@ -369,23 +450,67 @@ function loginWithEmail(event) {
   showToast("Sesion iniciada.");
 }
 
-function registerWithEmail(event) {
+async function registerWithEmail(event) {
   event.preventDefault();
-  const users = loadUsers();
   const email = normalizeEmail(el.registerEmail.value);
+  const password = el.registerPassword.value;
+  const companyName = el.registerCompany.value.trim();
+  const industry = el.registerIndustry.value;
+
+  if (isSupabaseEnabled) {
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: {
+          full_name: el.registerName.value.trim(),
+          company_name: companyName,
+          industry
+        }
+      }
+    });
+
+    if (error || !data.user) {
+      showToast(error?.message || "No se pudo crear la cuenta.");
+      return;
+    }
+
+    if (!data.session) {
+      showToast("Cuenta creada. Revisa tu email para confirmar el acceso.");
+      el.registerForm.reset();
+      setAuthTab("login");
+      return;
+    }
+
+    try {
+      await ensureRemoteProfile(data.user, {
+        name: el.registerName.value.trim(),
+        email,
+        companyName,
+        industry
+      });
+      await startSupabaseSession(data.user);
+    } catch (profileError) {
+      showToast(profileError.message || "No se pudo crear la empresa.");
+      return;
+    }
+    el.registerForm.reset();
+    showToast("Cuenta creada.");
+    return;
+  }
+
+  const users = loadUsers();
 
   if (users.some((user) => user.email === email)) {
     showToast("Ya existe una cuenta con ese email.");
     return;
   }
 
-  const companyName = el.registerCompany.value.trim();
-  const industry = el.registerIndustry.value;
   const user = {
     id: crypto.randomUUID(),
     name: el.registerName.value.trim(),
     email,
-    password: el.registerPassword.value,
+    password,
     provider: "email",
     companyId: crypto.randomUUID(),
     companyName,
@@ -402,7 +527,21 @@ function registerWithEmail(event) {
   showToast("Cuenta creada.");
 }
 
-function loginWithGoogleDemo() {
+async function loginWithGoogleDemo() {
+  if (isSupabaseEnabled) {
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        redirectTo: window.location.origin
+      }
+    });
+
+    if (error) {
+      showToast(error.message);
+    }
+    return;
+  }
+
   const users = loadUsers();
   let user = users.find((item) => item.provider === "google-demo");
 
@@ -451,9 +590,121 @@ function startSession(user, preferredIndustry) {
   updateSessionView();
 }
 
-function logout() {
+async function hydrateSupabaseSession() {
+  if (!isSupabaseEnabled) return;
+
+  const { data, error } = await supabase.auth.getSession();
+  if (error || !data.session?.user) return;
+
+  try {
+    await startSupabaseSession(data.session.user);
+  } catch (profileError) {
+    showToast(profileError.message || "No se pudo cargar la empresa.");
+  }
+
+  supabase.auth.onAuthStateChange(async (event, authSession) => {
+    if (event === "SIGNED_OUT") {
+      localStorage.removeItem(SESSION_KEY);
+      session = null;
+      workspaceId = null;
+      updateSessionView();
+      return;
+    }
+
+    if (authSession?.user && event === "SIGNED_IN") {
+      try {
+        await startSupabaseSession(authSession.user);
+      } catch (profileError) {
+        showToast(profileError.message || "No se pudo cargar la empresa.");
+      }
+    }
+  });
+}
+
+async function startSupabaseSession(user) {
+  const profile = await ensureRemoteProfile(user);
+  saveSession({
+    userId: user.id,
+    email: user.email,
+    name: profile.full_name,
+    companyId: profile.company.id,
+    companyName: profile.company.name,
+    industry: profile.company.industry,
+    taxId: profile.company.tax_id || "",
+    plan: profile.company.plan || "starter",
+    provider: "supabase"
+  });
+
+  state = loadState();
+  shareConfig = loadShareConfig();
+  await loadWorkspaceRemote();
+  applyShareConfig();
+  updateSessionView();
+}
+
+async function ensureRemoteProfile(user, input = {}) {
+  const { data: existingProfile } = await supabase
+    .from("user_profiles")
+    .select("id, full_name, email, role, company_id, companies(id, name, industry, tax_id, plan)")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  if (existingProfile?.companies) {
+    return {
+      ...existingProfile,
+      company: existingProfile.companies
+    };
+  }
+
+  const metadata = user.user_metadata || {};
+  const fullName = input.name || metadata.full_name || user.email?.split("@")[0] || "Usuario";
+  const companyName = input.companyName || metadata.company_name || "Mi empresa";
+  const industry = input.industry || metadata.industry || "Servicios";
+
+  const { data: company, error: companyError } = await supabase
+    .from("companies")
+    .insert({
+      name: companyName,
+      industry,
+      owner_id: user.id
+    })
+    .select("id, name, industry, tax_id, plan")
+    .single();
+
+  if (companyError) {
+    throw companyError;
+  }
+
+  const { data: profile, error: profileError } = await supabase
+    .from("user_profiles")
+    .insert({
+      id: user.id,
+      company_id: company.id,
+      full_name: fullName,
+      email: user.email,
+      role: "owner"
+    })
+    .select("id, full_name, email, role, company_id")
+    .single();
+
+  if (profileError) {
+    throw profileError;
+  }
+
+  return {
+    ...profile,
+    company
+  };
+}
+
+async function logout() {
+  if (isSupabaseEnabled) {
+    await supabase.auth.signOut();
+  }
+
   localStorage.removeItem(SESSION_KEY);
   session = null;
+  workspaceId = null;
   state = loadState();
   shareConfig = loadShareConfig();
   updateSessionView();
@@ -492,7 +743,7 @@ function applyCompanyConfig() {
   el.companyPlanInput.value = session.plan || "starter";
 }
 
-function saveCompanyConfig(event) {
+async function saveCompanyConfig(event) {
   event.preventDefault();
   if (!session) return;
 
@@ -506,11 +757,30 @@ function saveCompanyConfig(event) {
   session = { ...session, ...nextCompany };
   localStorage.setItem(SESSION_KEY, JSON.stringify(session));
 
-  const users = loadUsers().map((user) => {
-    if (user.id !== session.userId) return user;
-    return { ...user, ...nextCompany };
-  });
-  saveUsers(users);
+  if (isSupabaseEnabled) {
+    const { error } = await supabase
+      .from("companies")
+      .update({
+        name: nextCompany.companyName,
+        industry: nextCompany.industry,
+        tax_id: nextCompany.taxId,
+        plan: nextCompany.plan,
+        updated_at: new Date().toISOString()
+      })
+      .eq("id", session.companyId);
+
+    if (error) {
+      showToast(error.message);
+      return;
+    }
+  } else {
+    const users = loadUsers().map((user) => {
+      if (user.id !== session.userId) return user;
+      return { ...user, ...nextCompany };
+    });
+    saveUsers(users);
+  }
+
   updateSessionView();
   showToast("Datos de empresa guardados.");
 }
